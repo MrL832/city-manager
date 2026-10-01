@@ -132,6 +132,17 @@ function App() {
     }
   }, [decisions])
 
+  const completedScenarioReviews = useMemo(
+    () =>
+      scenarios
+        .map((scenario) => ({
+          scenario,
+          decision: decisions[scenario.id],
+        }))
+        .filter((item) => item.decision),
+    [decisions],
+  )
+
   const examSentenceStarters = useMemo(() => {
     if (!activeDecision) {
       return []
@@ -144,6 +155,44 @@ function App() {
       'Overall, a balanced policy would try to protect the public while limiting unnecessary data collection and monitoring.',
     ]
   }, [activeDecision, currentScenario.lawSpotlight.title])
+
+  const finalReview = useMemo(() => {
+    if (!allScenariosComplete) {
+      return null
+    }
+
+    const safetyCount = completedScenarioReviews.filter(
+      ({ decision }) => decision.policyScore > 0,
+    ).length
+    const privacyCount = completedScenarioReviews.filter(
+      ({ decision }) => decision.policyScore < 0,
+    ).length
+    const balanceCount = completedScenarioReviews.filter(
+      ({ decision }) => decision.policyScore === 0,
+    ).length
+
+    return {
+      counts: {
+        safety: safetyCount,
+        privacy: privacyCount,
+        balance: balanceCount,
+      },
+      paragraph: `Across all five scenarios, your city ends up as a ${summary.label.toLowerCase()}. You chose ${safetyCount} option${safetyCount === 1 ? '' : 's'} that leaned toward safety, ${privacyCount} that leaned toward privacy, and ${balanceCount} that tried to balance both sides. This is useful in the exam because it proves that digital technology decisions are rarely fully right or fully wrong: they depend on how much risk, surveillance, and control a society is willing to accept.`,
+      answerBullets: [
+        `Your strongest overall theme is ${summary.label.toLowerCase()}, which shows a clear judgement rather than a list of separate points.`,
+        'The main legal pattern is that UK GDPR and the Data Protection Act 2018 appear whenever personal or biometric data is collected, stored, or shared.',
+        'The Computer Misuse Act 1990 becomes most important when hacking, unauthorised access, malware, or disruption of systems is involved.',
+        'A strong final judgement should mention benefits for safety or efficiency, then explain the privacy, fairness, or environmental cost.',
+      ],
+      modelParagraph: [
+        `Overall, my city follows a ${summary.label.toLowerCase()} approach to digital technology.`,
+        `In the simulator, I sometimes supported security measures because smart systems can improve safety, speed, and access to services.`,
+        'However, many of these systems also reduce privacy because they collect personal, health, or biometric data and may increase surveillance.',
+        'Legally, this links to the Data Protection Act 2018 and UK GDPR when personal data is processed, while the Computer Misuse Act 1990 is relevant when systems are hacked or accessed without permission.',
+        'Therefore, the best answer is not simply to support or reject technology, but to explain the trade-off and suggest safeguards such as consent, limited data collection, and strong security.',
+      ],
+    }
+  }, [allScenariosComplete, completedScenarioReviews, summary.label])
 
   useEffect(() => {
     if (
@@ -599,21 +648,125 @@ function App() {
             )}
           </section>
 
-          {allScenariosComplete && (
+          {allScenariosComplete && finalReview && (
             <section className="rounded-3xl border border-emerald-400/20 bg-emerald-500/10 p-6 sm:p-8">
-              <p className="text-sm uppercase tracking-[0.3em] text-emerald-200">
-                Final Reflection
-              </p>
-              <h3 className="mt-3 text-2xl font-semibold text-white">
-                Your city policy is complete
-              </h3>
-              <p className="mt-4 max-w-3xl text-sm leading-7 text-emerald-50">
-                The simulator does not mark answers as simply right or wrong.
-                Instead, it shows that digital technology choices involve
-                competing priorities such as civil liberties, safety,
-                accountability, and sustainability. Use your results to practise
-                balanced exam paragraphs.
-              </p>
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div className="max-w-3xl">
+                  <p className="text-sm uppercase tracking-[0.3em] text-emerald-200">
+                    Compare Your Answers
+                  </p>
+                  <h3 className="mt-3 text-3xl font-semibold text-white">
+                    Your city policy is complete
+                  </h3>
+                  <p className="mt-4 text-sm leading-7 text-emerald-50">
+                    {finalReview.paragraph}
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-3 sm:min-w-80">
+                  <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-center">
+                    <p className="text-[11px] uppercase tracking-[0.25em] text-slate-400">
+                      Safety
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold text-white">
+                      {finalReview.counts.safety}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-center">
+                    <p className="text-[11px] uppercase tracking-[0.25em] text-slate-400">
+                      Balance
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold text-white">
+                      {finalReview.counts.balance}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-center">
+                    <p className="text-[11px] uppercase tracking-[0.25em] text-slate-400">
+                      Privacy
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold text-white">
+                      {finalReview.counts.privacy}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-4 xl:grid-cols-2">
+                {completedScenarioReviews.map(({ scenario, decision }, index) => (
+                  <article
+                    key={scenario.id}
+                    className="rounded-3xl border border-white/10 bg-slate-950/35 p-5"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.3em] text-emerald-200/80">
+                          Scenario {index + 1}
+                        </p>
+                        <h4 className="mt-2 text-lg font-semibold text-white">
+                          {scenario.topic}
+                        </h4>
+                        <p className="mt-2 text-sm leading-6 text-slate-200">
+                          {decision.title}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => jumpToScenario(index)}
+                        className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-white/20 hover:bg-white/10"
+                      >
+                        Review
+                      </button>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-100">
+                        {decision.stanceLabel}
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-100">
+                        {scenario.lawSpotlight.title}
+                      </span>
+                    </div>
+                    <p className="mt-4 text-sm leading-6 text-slate-300">
+                      {decision.conflict}
+                    </p>
+                  </article>
+                ))}
+              </div>
+
+              <div className="mt-6 grid gap-4 lg:grid-cols-[1.05fr_1.15fr]">
+                <div className="rounded-3xl border border-white/10 bg-slate-950/35 p-5">
+                  <p className="text-xs uppercase tracking-[0.3em] text-emerald-200">
+                    Revision Summary
+                  </p>
+                  <div className="mt-4 space-y-3">
+                    {finalReview.answerBullets.map((bullet) => (
+                      <p
+                        key={bullet}
+                        className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm leading-6 text-slate-200"
+                      >
+                        {bullet}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-3xl border border-cyan-400/20 bg-cyan-400/10 p-5">
+                  <p className="text-xs uppercase tracking-[0.3em] text-cyan-200">
+                    Model Final Paragraph
+                  </p>
+                  <h4 className="mt-2 text-xl font-semibold text-white">
+                    Use this as a full-answer scaffold
+                  </h4>
+                  <div className="mt-4 space-y-3">
+                    {finalReview.modelParagraph.map((line) => (
+                      <p
+                        key={line}
+                        className="rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm leading-6 text-slate-100"
+                      >
+                        {line}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </section>
           )}
         </section>
