@@ -741,6 +741,17 @@ function App() {
                   >
                     Print revision sheet
                   </button>
+                  <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4">
+                    <p className="text-xs uppercase tracking-[0.25em] text-cyan-100/80">
+                      Download as PDF
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-slate-100">
+                      Click <span className="font-semibold text-white">Print revision sheet</span>, then choose
+                      <span className="font-semibold text-white"> Save as PDF</span> or
+                      <span className="font-semibold text-white"> Microsoft Print to PDF</span> in the print
+                      window.
+                    </p>
+                  </div>
                   <div className="grid grid-cols-3 gap-3">
                   <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-center">
                     <p className="text-[11px] uppercase tracking-[0.25em] text-slate-400">
