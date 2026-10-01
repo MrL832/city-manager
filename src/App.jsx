@@ -194,6 +194,28 @@ function App() {
               </p>
             </section>
 
+            <section className="rounded-2xl border border-sky-400/20 bg-sky-500/10 p-4">
+              <p className="text-xs uppercase tracking-[0.25em] text-sky-200/90">
+                UK Law Quick Guide
+              </p>
+              <div className="mt-3 space-y-3 text-sm leading-6 text-slate-200">
+                <p>
+                  <span className="font-semibold text-white">
+                    Computer Misuse Act 1990:
+                  </span>{' '}
+                  makes hacking illegal, including unauthorised access to
+                  systems and actions that impair or disrupt them.
+                </p>
+                <p>
+                  <span className="font-semibold text-white">
+                    Data Protection Act 2018 and UK GDPR:
+                  </span>{' '}
+                  control how organisations in the UK collect, use, store, and
+                  secure personal data.
+                </p>
+              </div>
+            </section>
+
             <button
               type="button"
               onClick={resetSimulation}
@@ -337,6 +359,40 @@ function App() {
                       {activeDecision.environmental}
                     </p>
                   </article>
+                </div>
+
+                <div className="rounded-3xl border border-indigo-400/20 bg-indigo-500/10 p-5">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.3em] text-indigo-200">
+                        UK Law Spotlight
+                      </p>
+                      <h4 className="mt-2 text-lg font-semibold text-white">
+                        {currentScenario.lawSpotlight.title}
+                      </h4>
+                    </div>
+                    <span className="rounded-full border border-white/10 bg-slate-950/40 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-slate-300">
+                      Specific law detail
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-slate-200">
+                    {currentScenario.lawSpotlight.examTip}
+                  </p>
+                  <div className="mt-5 grid gap-3 lg:grid-cols-3">
+                    {currentScenario.lawSpotlight.items.map((item) => (
+                      <article
+                        key={item.law}
+                        className="rounded-2xl border border-white/10 bg-slate-950/30 p-4"
+                      >
+                        <p className="text-sm font-semibold text-white">
+                          {item.law}
+                        </p>
+                        <p className="mt-2 text-sm leading-6 text-slate-300">
+                          {item.detail}
+                        </p>
+                      </article>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
