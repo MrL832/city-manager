@@ -59,6 +59,34 @@ function ImpactCard({ title, body }) {
   )
 }
 
+function ScoreBar({ label, value, maxValue, tone, caption }) {
+  const toneStyles = {
+    safety: 'from-cyan-400 to-sky-500',
+    balance: 'from-violet-400 to-fuchsia-500',
+    privacy: 'from-emerald-400 to-green-500',
+  }
+
+  const width = maxValue === 0 ? 0 : (value / maxValue) * 100
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-white">{label}</p>
+          <p className="mt-1 text-xs text-slate-400">{caption}</p>
+        </div>
+        <p className="text-2xl font-semibold text-white">{value}</p>
+      </div>
+      <div className="mt-4 h-3 overflow-hidden rounded-full bg-slate-800">
+        <div
+          className={`h-full rounded-full bg-gradient-to-r ${toneStyles[tone]}`}
+          style={{ width: `${width}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
 function App() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [decisions, setDecisions] = useState({})
@@ -170,6 +198,18 @@ function App() {
     const balanceCount = completedScenarioReviews.filter(
       ({ decision }) => decision.policyScore === 0,
     ).length
+    const chartMax = Math.max(safetyCount, balanceCount, privacyCount, 1)
+    const scenarioScoreBars = completedScenarioReviews.map(({ scenario, decision }) => ({
+      id: scenario.id,
+      topic: scenario.topic,
+      score: decision.policyScore,
+      label:
+        decision.policyScore > 0
+          ? 'Safety'
+          : decision.policyScore < 0
+            ? 'Privacy'
+            : 'Balance',
+    }))
 
     return {
       counts: {
@@ -177,6 +217,31 @@ function App() {
         privacy: privacyCount,
         balance: balanceCount,
       },
+      chartMax,
+      scoreBars: [
+        {
+          key: 'safety',
+          label: 'Safety-leaning choices',
+          value: safetyCount,
+          caption: 'Choices that prioritised protection or intervention',
+          tone: 'safety',
+        },
+        {
+          key: 'balance',
+          label: 'Balanced choices',
+          value: balanceCount,
+          caption: 'Choices that tried to limit harm on both sides',
+          tone: 'balance',
+        },
+        {
+          key: 'privacy',
+          label: 'Privacy-leaning choices',
+          value: privacyCount,
+          caption: 'Choices that defended autonomy and data control',
+          tone: 'privacy',
+        },
+      ],
+      scenarioScoreBars,
       paragraph: `Across all five scenarios, your city ends up as a ${summary.label.toLowerCase()}. You chose ${safetyCount} option${safetyCount === 1 ? '' : 's'} that leaned toward safety, ${privacyCount} that leaned toward privacy, and ${balanceCount} that tried to balance both sides. This is useful in the exam because it proves that digital technology decisions are rarely fully right or fully wrong: they depend on how much risk, surveillance, and control a society is willing to accept.`,
       answerBullets: [
         `Your strongest overall theme is ${summary.label.toLowerCase()}, which shows a clear judgement rather than a list of separate points.`,
@@ -230,9 +295,15 @@ function App() {
     setDecisions({})
   }
 
+  const printRevisionSheet = () => {
+    if (typeof window !== 'undefined') {
+      window.print()
+    }
+  }
+
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:flex-row lg:px-8">
+      <div className="app-shell no-print mx-auto flex min-h-screen max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:flex-row lg:px-8">
         <aside className="w-full shrink-0 rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur lg:sticky lg:top-6 lg:h-fit lg:w-80">
           <div className="space-y-6">
             <div className="space-y-4">
@@ -662,7 +733,15 @@ function App() {
                     {finalReview.paragraph}
                   </p>
                 </div>
-                <div className="grid grid-cols-3 gap-3 sm:min-w-80">
+                <div className="flex flex-col gap-3 sm:min-w-80">
+                  <button
+                    type="button"
+                    onClick={printRevisionSheet}
+                    className="rounded-2xl border border-white/15 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-200"
+                  >
+                    Print revision sheet
+                  </button>
+                  <div className="grid grid-cols-3 gap-3">
                   <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-center">
                     <p className="text-[11px] uppercase tracking-[0.25em] text-slate-400">
                       Safety
@@ -686,6 +765,77 @@ function App() {
                     <p className="mt-2 text-2xl font-semibold text-white">
                       {finalReview.counts.privacy}
                     </p>
+                  </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+                <div className="rounded-3xl border border-white/10 bg-slate-950/35 p-5">
+                  <p className="text-xs uppercase tracking-[0.3em] text-emerald-200">
+                    Score Breakdown Chart
+                  </p>
+                  <h4 className="mt-2 text-xl font-semibold text-white">
+                    How your choices were distributed
+                  </h4>
+                  <div className="mt-4 space-y-4">
+                    {finalReview.scoreBars.map((bar) => (
+                      <ScoreBar
+                        key={bar.key}
+                        label={bar.label}
+                        value={bar.value}
+                        maxValue={finalReview.chartMax}
+                        tone={bar.tone}
+                        caption={bar.caption}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-3xl border border-white/10 bg-slate-950/35 p-5">
+                  <p className="text-xs uppercase tracking-[0.3em] text-cyan-200">
+                    Scenario Score Map
+                  </p>
+                  <h4 className="mt-2 text-xl font-semibold text-white">
+                    Topic-by-topic pattern
+                  </h4>
+                  <div className="mt-4 space-y-3">
+                    {finalReview.scenarioScoreBars.map((item) => {
+                      const width = Math.abs(item.score) * 25
+                      const alignment =
+                        item.score >= 0 ? 'justify-start' : 'justify-end'
+                      const tone =
+                        item.score > 0
+                          ? 'from-cyan-400 to-sky-500'
+                          : item.score < 0
+                            ? 'from-emerald-400 to-green-500'
+                            : 'from-violet-400 to-fuchsia-500'
+
+                      return (
+                        <div key={item.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                          <div className="flex items-center justify-between gap-4">
+                            <p className="text-sm font-semibold text-white">
+                              {item.topic}
+                            </p>
+                            <span className="rounded-full border border-white/10 bg-slate-950/40 px-3 py-1 text-xs text-slate-200">
+                              {item.label}
+                            </span>
+                          </div>
+                          <div className="mt-3 grid grid-cols-[72px_1fr_72px] items-center gap-3 text-xs uppercase tracking-[0.2em] text-slate-400">
+                            <span className="text-left">Privacy</span>
+                            <div className="h-3 rounded-full bg-slate-800">
+                              <div className={`flex h-full ${alignment}`}>
+                                <div
+                                  className={`h-full rounded-full bg-gradient-to-r ${tone}`}
+                                  style={{ width: `${Math.max(width, item.score === 0 ? 50 : 0)}%` }}
+                                />
+                              </div>
+                            </div>
+                            <span className="text-right">Safety</span>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               </div>
@@ -771,6 +921,67 @@ function App() {
           )}
         </section>
       </div>
+
+      {allScenariosComplete && finalReview && (
+        <section className="print-sheet">
+          <div className="print-sheet__page">
+            <div className="print-sheet__header">
+              <p className="print-sheet__eyebrow">Ethics & Impact Simulator</p>
+              <h1 className="print-sheet__title">Printable Revision Sheet</h1>
+              <p className="print-sheet__summary">{finalReview.paragraph}</p>
+            </div>
+
+            <div className="print-sheet__stats">
+              <div className="print-sheet__stat">
+                <span>Safety</span>
+                <strong>{finalReview.counts.safety}</strong>
+              </div>
+              <div className="print-sheet__stat">
+                <span>Balance</span>
+                <strong>{finalReview.counts.balance}</strong>
+              </div>
+              <div className="print-sheet__stat">
+                <span>Privacy</span>
+                <strong>{finalReview.counts.privacy}</strong>
+              </div>
+            </div>
+
+            <section className="print-sheet__section">
+              <h2>Scenario Comparison</h2>
+              <div className="print-sheet__grid">
+                {completedScenarioReviews.map(({ scenario, decision }, index) => (
+                  <article key={scenario.id} className="print-sheet__card">
+                    <p className="print-sheet__meta">Scenario {index + 1}</p>
+                    <h3>{scenario.topic}</h3>
+                    <p><strong>Chosen policy:</strong> {decision.title}</p>
+                    <p><strong>Stance:</strong> {decision.stanceLabel}</p>
+                    <p><strong>Law focus:</strong> {scenario.lawSpotlight.title}</p>
+                    <p><strong>Conflict:</strong> {decision.conflict}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className="print-sheet__section">
+              <h2>Revision Summary</h2>
+              <ul className="print-sheet__list">
+                {finalReview.answerBullets.map((bullet) => (
+                  <li key={bullet}>{bullet}</li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="print-sheet__section">
+              <h2>Model Final Paragraph</h2>
+              <div className="print-sheet__paragraphs">
+                {finalReview.modelParagraph.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
+              </div>
+            </section>
+          </div>
+        </section>
+      )}
     </main>
   )
 }
