@@ -1,9 +1,68 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { scenarios } from './data/scenarios'
+
+const impactCardStyles = {
+  Ethical: {
+    badge: 'ET',
+    border: 'border-rose-400/30',
+    background: 'bg-rose-500/10',
+    badgeStyle: 'bg-rose-300/20 text-rose-100',
+    label: 'text-rose-200',
+    prompt: 'Whose rights, freedom, or fairness are affected?',
+  },
+  Legal: {
+    badge: 'LAW',
+    border: 'border-sky-400/30',
+    background: 'bg-sky-500/10',
+    badgeStyle: 'bg-sky-300/20 text-sky-100',
+    label: 'text-sky-200',
+    prompt: 'Which UK rule applies, and what must the council do?',
+  },
+  Environmental: {
+    badge: 'ENV',
+    border: 'border-emerald-400/30',
+    background: 'bg-emerald-500/10',
+    badgeStyle: 'bg-emerald-300/20 text-emerald-100',
+    label: 'text-emerald-200',
+    prompt: 'What energy use, hardware waste, or emissions follow?',
+  },
+}
+
+function ImpactCard({ title, body }) {
+  const style = impactCardStyles[title]
+
+  return (
+    <article
+      className={`rounded-3xl border p-5 shadow-lg shadow-slate-950/20 ${style.border} ${style.background}`}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className={`text-xs uppercase tracking-[0.3em] ${style.label}`}>
+            {title}
+          </p>
+          <h4 className="mt-2 text-xl font-semibold text-white">{title} impact</h4>
+        </div>
+        <span
+          className={`inline-flex h-12 min-w-12 items-center justify-center rounded-2xl px-3 text-xs font-semibold uppercase tracking-[0.2em] ${style.badgeStyle}`}
+        >
+          {style.badge}
+        </span>
+      </div>
+      <p className="mt-4 text-sm leading-7 text-slate-100">{body}</p>
+      <div className="mt-5 rounded-2xl border border-white/10 bg-slate-950/30 p-3">
+        <p className="text-[11px] uppercase tracking-[0.25em] text-slate-400">
+          Revision question
+        </p>
+        <p className="mt-2 text-sm leading-6 text-slate-200">{style.prompt}</p>
+      </div>
+    </article>
+  )
+}
 
 function App() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [decisions, setDecisions] = useState({})
+  const briefingRef = useRef(null)
 
   const currentScenario = scenarios[currentIndex]
   const activeDecision = decisions[currentScenario.id]
@@ -73,6 +132,33 @@ function App() {
     }
   }, [decisions])
 
+  const examSentenceStarters = useMemo(() => {
+    if (!activeDecision) {
+      return []
+    }
+
+    return [
+      `One ethical issue is that ${activeDecision.ethical.toLowerCase()}`,
+      `However, supporters would argue that ${activeDecision.conflict.toLowerCase()}`,
+      `Legally, this links to ${currentScenario.lawSpotlight.title} because ${activeDecision.legal.toLowerCase()}`,
+      'Overall, a balanced policy would try to protect the public while limiting unnecessary data collection and monitoring.',
+    ]
+  }, [activeDecision, currentScenario.lawSpotlight.title])
+
+  useEffect(() => {
+    if (
+      activeDecision &&
+      briefingRef.current &&
+      typeof window !== 'undefined' &&
+      window.innerWidth < 1024
+    ) {
+      briefingRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    }
+  }, [activeDecision, currentScenario.id])
+
   const handleDecision = (choice) => {
     setDecisions((previous) => ({
       ...previous,
@@ -135,34 +221,51 @@ function App() {
               <div className="mt-4 space-y-2">
                 {scenarios.map((scenario, index) => {
                   const decision = decisions[scenario.id]
+                  const isCurrent = index === currentIndex
 
                   return (
                     <button
                       key={scenario.id}
                       type="button"
                       onClick={() => jumpToScenario(index)}
-                      className={`flex w-full items-center justify-between rounded-2xl border px-3 py-3 text-left transition ${
-                        index === currentIndex
-                          ? 'border-cyan-400/50 bg-cyan-400/10'
+                      className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition ${
+                        isCurrent
+                          ? 'border-cyan-400/50 bg-cyan-400/10 shadow-lg shadow-cyan-500/5'
                           : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
                       }`}
                     >
-                      <div>
+                      <div
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border text-sm font-semibold ${
+                          decision
+                            ? 'border-emerald-400/30 bg-emerald-400/15 text-emerald-200'
+                            : isCurrent
+                              ? 'border-cyan-400/40 bg-cyan-300/10 text-cyan-100'
+                              : 'border-white/10 bg-slate-900/60 text-slate-300'
+                        }`}
+                      >
+                        {decision ? 'OK' : index + 1}
+                      </div>
+                      <div className="min-w-0 flex-1">
                         <p className="text-xs uppercase tracking-[0.25em] text-slate-400">
                           {scenario.label}
                         </p>
                         <p className="mt-1 text-sm font-medium text-white">
                           {scenario.topic}
                         </p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          {decision ? decision.stanceLabel : 'Choose a city policy'}
+                        </p>
                       </div>
                       <span
-                        className={`rounded-full px-2 py-1 text-xs font-medium ${
+                        className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${
                           decision
                             ? 'bg-emerald-400/15 text-emerald-200'
-                            : 'bg-slate-800 text-slate-400'
+                            : isCurrent
+                              ? 'bg-cyan-400/15 text-cyan-100'
+                              : 'bg-slate-800 text-slate-400'
                         }`}
                       >
-                        {decision ? 'Briefed' : 'Pending'}
+                        {decision ? 'Done' : isCurrent ? 'Live' : 'Pending'}
                       </span>
                     </button>
                   )
@@ -287,15 +390,25 @@ function App() {
                   <p className="mt-4 text-sm leading-6 text-slate-300">
                     {choice.summary}
                   </p>
-                  <p className="mt-4 text-xs uppercase tracking-[0.25em] text-slate-400">
-                    {choice.stanceLabel}
-                  </p>
+                  <div className="mt-4 flex items-center justify-between gap-3">
+                    <p className="text-xs uppercase tracking-[0.25em] text-slate-400">
+                      {choice.stanceLabel}
+                    </p>
+                    {isSelected && (
+                      <span className="rounded-full border border-cyan-300/30 bg-cyan-300/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-100">
+                        Selected
+                      </span>
+                    )}
+                  </div>
                 </button>
               )
             })}
           </div>
 
-          <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 sm:p-8">
+          <section
+            ref={briefingRef}
+            className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 sm:p-8"
+          >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm uppercase tracking-[0.3em] text-amber-200">
@@ -323,6 +436,34 @@ function App() {
 
             {activeDecision ? (
               <div className="mt-6 space-y-6">
+                <div className="rounded-3xl border border-cyan-400/20 bg-cyan-400/10 p-5">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="max-w-3xl">
+                      <p className="text-xs uppercase tracking-[0.3em] text-cyan-100/80">
+                        Selected city policy
+                      </p>
+                      <h4 className="mt-2 text-2xl font-semibold text-white">
+                        {activeDecision.title}
+                      </h4>
+                      <p className="mt-3 text-sm leading-6 text-slate-100">
+                        {activeDecision.summary}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="rounded-full border border-cyan-300/30 bg-cyan-300/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100">
+                        {activeDecision.stanceLabel}
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-slate-950/40 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-200">
+                        {activeDecision.policyScore > 0
+                          ? 'Leans toward safety'
+                          : activeDecision.policyScore < 0
+                            ? 'Leans toward privacy'
+                            : 'Balanced position'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="rounded-2xl border border-amber-300/20 bg-amber-400/10 p-4">
                   <p className="text-xs uppercase tracking-[0.25em] text-amber-100/80">
                     Conflict summary
@@ -333,32 +474,12 @@ function App() {
                 </div>
 
                 <div className="grid gap-4 lg:grid-cols-3">
-                  <article className="rounded-3xl border border-rose-400/20 bg-rose-500/10 p-5">
-                    <p className="text-xs uppercase tracking-[0.3em] text-rose-200">
-                      Ethical
-                    </p>
-                    <p className="mt-4 text-sm leading-7 text-slate-100">
-                      {activeDecision.ethical}
-                    </p>
-                  </article>
-
-                  <article className="rounded-3xl border border-sky-400/20 bg-sky-500/10 p-5">
-                    <p className="text-xs uppercase tracking-[0.3em] text-sky-200">
-                      Legal
-                    </p>
-                    <p className="mt-4 text-sm leading-7 text-slate-100">
-                      {activeDecision.legal}
-                    </p>
-                  </article>
-
-                  <article className="rounded-3xl border border-emerald-400/20 bg-emerald-500/10 p-5">
-                    <p className="text-xs uppercase tracking-[0.3em] text-emerald-200">
-                      Environmental
-                    </p>
-                    <p className="mt-4 text-sm leading-7 text-slate-100">
-                      {activeDecision.environmental}
-                    </p>
-                  </article>
+                  <ImpactCard title="Ethical" body={activeDecision.ethical} />
+                  <ImpactCard title="Legal" body={activeDecision.legal} />
+                  <ImpactCard
+                    title="Environmental"
+                    body={activeDecision.environmental}
+                  />
                 </div>
 
                 <div className="rounded-3xl border border-indigo-400/20 bg-indigo-500/10 p-5">
@@ -394,6 +515,69 @@ function App() {
                     ))}
                   </div>
                 </div>
+
+                <details className="rounded-3xl border border-cyan-400/20 bg-slate-950/40 p-5 group">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.3em] text-cyan-200">
+                        Exam answer helper
+                      </p>
+                      <h4 className="mt-2 text-lg font-semibold text-white">
+                        Turn this decision into a GCSE paragraph
+                      </h4>
+                    </div>
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-slate-300 transition group-open:bg-cyan-300/15 group-open:text-cyan-100">
+                      Open
+                    </span>
+                  </summary>
+                  <div className="mt-5 grid gap-4 lg:grid-cols-[1.35fr_1fr]">
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                      <p className="text-xs uppercase tracking-[0.25em] text-slate-400">
+                        Sentence starters
+                      </p>
+                      <div className="mt-3 space-y-3">
+                        {examSentenceStarters.map((starter) => (
+                          <p
+                            key={starter}
+                            className="rounded-2xl border border-white/10 bg-slate-950/40 px-3 py-3 text-sm leading-6 text-slate-200"
+                          >
+                            {starter}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                      <p className="text-xs uppercase tracking-[0.25em] text-slate-400">
+                        Key terms to include
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <span className="rounded-full border border-white/10 bg-slate-950/40 px-3 py-1 text-xs text-slate-200">
+                          {currentScenario.topic}
+                        </span>
+                        <span className="rounded-full border border-white/10 bg-slate-950/40 px-3 py-1 text-xs text-slate-200">
+                          {currentScenario.lawSpotlight.title}
+                        </span>
+                        {currentScenario.lawSpotlight.items.map((item) => (
+                          <span
+                            key={item.law}
+                            className="rounded-full border border-white/10 bg-slate-950/40 px-3 py-1 text-xs text-slate-200"
+                          >
+                            {item.law}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="mt-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4">
+                        <p className="text-xs uppercase tracking-[0.25em] text-cyan-100/80">
+                          Exam structure
+                        </p>
+                        <p className="mt-2 text-sm leading-6 text-slate-200">
+                          Point, explain the benefit, explain the risk, name the
+                          UK law, then finish with a balanced judgement.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </details>
 
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                   <p className="text-xs uppercase tracking-[0.25em] text-slate-400">
